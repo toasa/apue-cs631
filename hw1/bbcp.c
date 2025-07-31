@@ -1,9 +1,9 @@
 #include <errno.h>
+#include <libgen.h>
+#include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
-#include <limits.h>
-#include <libgen.h>
 #include <sys/stat.h>
 
 bool is_dir(const char *filepath) {
@@ -56,9 +56,7 @@ int copy(FILE *src, FILE *dst) {
     return 0;
 }
 
-void usage(const char *arg0) {
-    fprintf(stderr, "[Usage] %s src dst\n", arg0);
-}
+void usage(const char *arg0) { fprintf(stderr, "[Usage] %s src dst\n", arg0); }
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
@@ -86,7 +84,8 @@ int main(int argc, char *argv[]) {
     dst_exist = is_exist(dst_path);
     if (dst_exist) {
         if ((inode(argv[1]) == inode(dst_path))) {
-            fprintf(stderr, "bbcp: '%s' and '%s' are the same file\n", argv[1], argv[2]);
+            fprintf(stderr, "bbcp: '%s' and '%s' are the same file\n", argv[1],
+                    argv[2]);
             exit(EXIT_FAILURE);
         }
     }
