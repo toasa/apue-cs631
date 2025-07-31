@@ -1,36 +1,40 @@
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <limits.h>
 #include <libgen.h>
 #include <sys/stat.h>
 
-int is_dir(const char *filepath) {
+bool is_dir(const char *filepath) {
     struct stat sb;
 
     if (stat(filepath, &sb) == -1) {
-        perror("stat");
+        perror("stat() is_dir");
         exit(EXIT_FAILURE);
     }
 
     return (sb.st_mode & S_IFMT) == S_IFDIR;
 }
 
-int is_exist(const char *filepath) {
+bool is_exist(const char *filepath) {
     struct stat sb;
 
-    if (stat(filepath, &sb) == -1) {
-        perror("stat");
+    int ret = stat(filepath, &sb);
+    if (ret == -1 && errno != ENOENT) {
+        perror("stat()");
         exit(EXIT_FAILURE);
     }
 
-    return (sb.st_mode & S_IFMT) == S_IFREG;
+    return ret == 0;
 }
 
 ino_t inode(const char *filepath) {
     struct stat sb;
 
     if (stat(filepath, &sb) == -1) {
-        perror("stat");
+        fprintf(stderr, "%s: ", filepath);
+        perror("stat() inode");
         exit(EXIT_FAILURE);
     }
 
@@ -52,14 +56,18 @@ int copy(FILE *src, FILE *dst) {
     return 0;
 }
 
-// 1. bbcp file1 file2
-// 2. bbcp file1 dir
-// 3. bbcp file1 dir/file2
-// 4. bbcp file1 dir/subdir/subsubdir/file2
+void usage(const char *arg0) {
+    fprintf(stderr, "[Usage] %s src dst\n", arg0);
+}
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
-        fprintf(stderr, "[Usage] src dst\n");
+        usage(argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    if (!is_exist(argv[1])) {
+        fprintf(stderr, "bbcp: '%s' No such file or directory\n", argv[1]);
         exit(EXIT_FAILURE);
     }
 
@@ -68,25 +76,28 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    bool dst_exist = is_exist(argv[2]);
     char dst_path[PATH_MAX];
-    if (is_dir(argv[2]))
+    if (dst_exist && is_dir(argv[2]))
         snprintf(dst_path, PATH_MAX, "%s/%s", argv[2], basename(argv[1]));
     else
         snprintf(dst_path, PATH_MAX, "%s", argv[2]);
 
-    if (is_exist(argv[2]) && (inode(argv[1]) == inode(argv[2]))) {
-        fprintf(stderr, "bbcp: '%s' and '%s' are the same file", argv[1], argv[2]);
-        exit(EXIT_FAILURE);
+    dst_exist = is_exist(dst_path);
+    if (dst_exist) {
+        if ((inode(argv[1]) == inode(dst_path))) {
+            fprintf(stderr, "bbcp: '%s' and '%s' are the same file\n", argv[1], argv[2]);
+            exit(EXIT_FAILURE);
+        }
     }
 
     FILE *src = fopen(argv[1], "r");
-    FILE *dst = fopen(argv[2], "w");
+    FILE *dst = fopen(dst_path, "w");
 
     if (copy(src, dst) != 0) {
         fprintf(stderr, "copy() failed\n");
         exit(EXIT_FAILURE);
     }
-
 
     exit(EXIT_SUCCESS);
 }
