@@ -53,6 +53,11 @@ int copy(FILE *src, FILE *dst) {
         }
     }
 
+    if (ferror(src)) {
+        fprintf(stderr, "fread() failed\n");
+        exit(EXIT_FAILURE);
+    }
+
     return 0;
 }
 
