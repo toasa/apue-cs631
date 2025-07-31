@@ -103,5 +103,8 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    fclose(src);
+    fclose(dst);
+
     exit(EXIT_SUCCESS);
 }
