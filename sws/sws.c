@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -152,22 +153,67 @@ int recv_http_req(FILE *in) {
     return 0;
 }
 
-int send_http_resp(FILE *out) {
+void fmt_time(char *buf, const time_t *t) {
+    struct tm *tm = gmtime(t);
+    strftime(buf, 100, "%a, %d %b %Y %H:%M:%S GMT", tm);
+}
+
+int send_http_resp_header(FILE *out, const char *filename) {
     time_t now = time(NULL);
-    struct tm *tm = gmtime(&now);
-    char t[100];
-    strftime(t, sizeof(t), "%a, %d %b %Y %H:%M:%S GMT", tm);
+    char date[100];
+    fmt_time(date, &now);
+
+    struct stat st;
+    if (stat(filename, &st) == -1) {
+        perror("stat()");
+        return -1;
+    }
+
+    char lm[100];
+    fmt_time(lm, &st.st_mtime);
 
     fprintf(out, "HTTP/1.0 200 OK\r\n");
-    fprintf(out, "Date: %s\r\n", t);
+    fprintf(out, "Date: %s\r\n", date);
     fprintf(out, "Server: sws\r\n");
-    fprintf(out, "Last-Modified: %s\r\n", t); // TODO: fix for each URI
+    fprintf(out, "Last-Modified: %s\r\n", lm);
     fprintf(out, "Content-Type: text/html\r\n");
-    fprintf(out, "Content-Length: 1024\r\n"); // TODO: fix for each URI
-                                              //
-    fprintf(out, "\r\n");
+    fprintf(out, "Content-Length: %ld\r\n", st.st_size);
 
-    // TODO: send body
+    return 0;
+}
+
+int send_http_resp_body(FILE *out, const char *filename) {
+    FILE *fd = fopen(filename, "r");
+    if (fd == NULL) {
+        perror("fdopen()");
+        return -1;
+    }
+
+    char buf[BUFSIZ];
+    size_t nread;
+    while ((nread = fread(buf, 1, BUFSIZ, fd)) > 0) {
+        if (fwrite(buf, 1, nread, out) != nread) {
+            perror("fwrite()");
+            return -1;
+        }
+    }
+
+    if (ferror(fd)) {
+        perror("fread()");
+        return -1;
+    }
+
+    fclose(fd);
+
+    return 0;
+}
+
+int send_http_resp(FILE *out) {
+    const char *content = "./index.html"; // TODO: handle for each URI
+
+    send_http_resp_header(out, content);
+    fprintf(out, "\r\n");
+    send_http_resp_body(out, content);
 
     return 0;
 }
