@@ -125,7 +125,7 @@ int parse_request_line(char *line, enum HTTP_METHOD *method, char **uri) {
     }
     *end = '\0';
 
-    if (strncmp(p, "HTTP/1.0", sizeof("HTTP/1.0")) != 0) {
+    if (strcmp(p, "HTTP/1.0") != 0 && strcmp(p, "HTTP/1.1") != 0) {
         fprintf(stderr, "invalid HTTP version: %s\n", p);
         return -1;
     }
