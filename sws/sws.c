@@ -134,21 +134,30 @@ int parse_request_line(char *line, enum HTTP_METHOD *method, char **uri) {
 }
 
 int recv_http_req(FILE *in) {
-    char buf[BUFSIZ];
-    if (fgets(buf, BUFSIZ, in) == NULL) {
+    char line[BUFSIZ];
+    if (fgets(line, BUFSIZ, in) == NULL) {
         fprintf(stderr, "fgets() failed\n");
         return -1;
     }
 
     enum HTTP_METHOD method;
     char *uri;
-    if (parse_request_line(buf, &method, &uri) == -1) {
+    if (parse_request_line(line, &method, &uri) == -1) {
         fprintf(stderr, "parse_request_line() failed\n");
         return -1;
     }
 
     printf("sws: METHOD: %d\n", method);
-    printf("sws: URL   : %s\n", uri);
+    printf("sws: URI   : %s\n", uri);
+
+    // TODO: use URI to response HTTP
+
+    while (fgets(line, BUFSIZ, in) != NULL) {
+        if (strcmp(line, "\r\n") == 0)
+            break; // End of request
+
+        printf("ignored: %s", line);
+    }
 
     return 0;
 }
