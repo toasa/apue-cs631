@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <time.h>
 #include <unistd.h>
 
 #define DEFAULT_PORT 9876
@@ -131,13 +132,7 @@ int parse_request_line(char *line, enum HTTP_METHOD *method, char **uri) {
     return 0;
 }
 
-int handle_http_req(int conn) {
-    FILE *in, *out;
-    if (create_sock_stream(conn, &in, &out) == -1) {
-        fprintf(stderr, "create_sock_stream() failed\n");
-        return -1;
-    }
-
+int recv_http_req(FILE *in) {
     char buf[BUFSIZ];
     if (fgets(buf, BUFSIZ, in) == NULL) {
         fprintf(stderr, "fgets() failed\n");
@@ -154,12 +149,28 @@ int handle_http_req(int conn) {
     printf("sws: METHOD: %d\n", method);
     printf("sws: URL   : %s\n", uri);
 
-    fclose(in);
-    fclose(out);
-
     return 0;
 }
 
+int send_http_resp(FILE *out) {
+    time_t now = time(NULL);
+    struct tm *tm = gmtime(&now);
+    char t[100];
+    strftime(t, sizeof(t), "%a, %d %b %Y %H:%M:%S GMT", tm);
+
+    fprintf(out, "HTTP/1.0 200 OK\r\n");
+    fprintf(out, "Date: %s\r\n", t);
+    fprintf(out, "Server: sws\r\n");
+    fprintf(out, "Last-Modified: %s\r\n", t); // TODO: fix for each URI
+    fprintf(out, "Content-Type: text/html\r\n");
+    fprintf(out, "Content-Length: 1024\r\n"); // TODO: fix for each URI
+                                              //
+    fprintf(out, "\r\n");
+
+    // TODO: send body
+
+    return 0;
+}
 
 int serve(int sock) {
     int conn = accept(sock, NULL, NULL);
@@ -168,10 +179,24 @@ int serve(int sock) {
         return -1;
     }
 
-    if (handle_http_req(conn) == -1) {
-        fprintf(stderr, "handle_http_req() failed\n");
+    FILE *in, *out;
+    if (create_sock_stream(conn, &in, &out) == -1) {
+        fprintf(stderr, "create_sock_stream() failed\n");
         return -1;
     }
+
+    if (recv_http_req(in) == -1) {
+        fprintf(stderr, "recv_http_req() failed\n");
+        return -1;
+    }
+
+    if (send_http_resp(out) == -1) {
+        fprintf(stderr, "send_http_resp() failed\n");
+        return -1;
+    }
+
+    fclose(in);
+    fclose(out);
 
     return 0;
 }
