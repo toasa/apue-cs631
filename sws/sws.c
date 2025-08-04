@@ -78,7 +78,7 @@ static int create_sock_stream(int sock, FILE **in, FILE **out) {
     return 0;
 }
 
-static int serve(int sock) {
+static int run_server(int sock) {
     int conn = accept(sock, NULL, NULL);
     if (conn == -1) {
         perror("accept");
@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    if (serve(sock) == -1) {
+    if (run_server(sock) == -1) {
         fprintf(stderr, "serve() failed\n");
         return 1;
     }
