@@ -44,12 +44,12 @@ static int parse_request_line(char *line, enum HTTP_METHOD *method, char **uri) 
 
     p++;
 
-    char *end = strstr(p, "\r\n");
-    if (end == NULL) {
+    char *q = strstr(p, "\r\n");
+    if (q == NULL) {
         fprintf(stderr, "invalid request line; CRLF not found\n");
         return -1;
     }
-    *end = '\0';
+    *q = '\0';
 
     if (strcmp(p, "HTTP/1.0") != 0 && strcmp(p, "HTTP/1.1") != 0) {
         fprintf(stderr, "invalid HTTP version: %s\n", p);
