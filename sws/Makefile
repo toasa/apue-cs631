@@ -1,7 +1,9 @@
 CFLAGS = -Wall -Werror -Wextra -g
 
-sws: sws.c
-	gcc $(CFLAGS) -o sws sws.c
+SRCS = sws.c http.c
+
+sws: $(SRCS)
+	gcc $(CFLAGS) -o sws $(SRCS)
 
 clean:
 	rm -f sws
